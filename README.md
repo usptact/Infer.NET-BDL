@@ -21,8 +21,9 @@ The model follows a hierarchical Bayesian structure with three levels:
 
 ### Level 1: Hyperparameters
 - **Coefficient precision hyperparameters**: `a` and `b` (shape and rate for Gamma prior)
-  - Sparse mode: `a = 0.5`, `b = 1e-6` (encourages sparsity via automatic relevance determination)
+  - Sparse mode: `a = 0.5`, `b = 3e-6` (encourages ~70% sparsity, matching typical sparse coefficients)
   - Non-sparse mode: `a = 1.0`, `b = 1.0` (standard prior)
+  - This balances sparsity induction with good reconstruction quality
 - **Dictionary precision prior**: `Gamma(1, 1)`
 - **Noise precision prior**: `Gamma(1, 1)`
 
@@ -51,22 +52,22 @@ Where:
 - **C**: Coefficient matrix (`numSignals × numBases`) - learned (sparse)
 - **ε**: Gaussian noise with precision `β`
 
-The sparse prior on coefficients (when `a=0.5, b=1e-6`) implements Automatic Relevance Determination (ARD), which automatically drives unnecessary coefficients toward zero.
+The sparse prior on coefficients (when `a=0.5, b=3e-6`) implements Automatic Relevance Determination (ARD), which automatically drives unnecessary coefficients toward zero while maintaining approximately 70% sparsity.
 
 ## Parameters
 
 ### Model Parameters
-- **`numSignals`**: Number of observed signals (default: 50)
+- **`numSignals`**: Number of observed signals (default: 200)
 - **`numBases`**: Number of dictionary atoms/basis functions (default: 8)
 - **`signalWidth`**: Dimension of each signal (default: 64)
 - **`sparse`**: Whether to use sparse priors for coefficients (default: true)
 
 ### Inference Parameters
-- **`maxIterations`**: Maximum number of Variational Message Passing iterations (default: 50)
+- **`maxIterations`**: Maximum number of Variational Message Passing iterations (default: 100)
 - **`tolerance`**: Convergence tolerance (default: 1e-3)
 
 ### Hyperparameters
-- **Sparse mode**: `a = 0.5`, `b = 1e-6` (encourages sparsity)
+- **Sparse mode**: `a = 0.5`, `b = 3e-6` (encourages ~70% sparsity)
 - **Non-sparse mode**: `a = 1.0`, `b = 1.0` (standard prior)
 - **Dictionary precision**: `Gamma(1, 1)`
 - **Noise precision**: `Gamma(1, 1)`
