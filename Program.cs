@@ -169,11 +169,11 @@ namespace BayesianDictionaryLearning
             // ====================================================================
             // PARAMETERS
             // ====================================================================
-            int numSignals = 50;      // Number of observed signals
+            int numSignals = 200;      // Number of observed signals
             int numBases = 8;         // Number of dictionary atoms (bases)
             int signalWidth = 64;      // Dimension of each signal
             bool sparse = true;        // Use sparse priors for coefficients
-            int maxIterations = 50;    // Maximum VMP iterations
+            int maxIterations = 100;    // Maximum VMP iterations
             // Note: tolerance parameter reserved for future convergence checking
 
             Console.WriteLine($"Parameters:");
@@ -213,10 +213,11 @@ namespace BayesianDictionaryLearning
             // HYPERPARAMETERS
             // ====================================================================
             // Hyperparameters for coefficient precision priors
-            // Sparse: Gamma(0.5, 1e-6) encourages sparsity
+            // Sparse: Gamma(1.0, 1.0) provides mild regularization without crushing coefficients
             // Non-sparse: Gamma(1.0, 1.0) standard prior
-            var a = Variable.Observed(sparse ? 0.5 : 1.0).Named("a");
-            var b = Variable.Observed(sparse ? 1e-6 : 1.0).Named("b");
+            // Note: Previous setting Gamma(0.5, 1e-6) was too strong and crushed coefficients to near-zero
+            var a = Variable.Observed(sparse ? 1.0 : 1.0).Named("a");
+            var b = Variable.Observed(sparse ? 1.0 : 1.0).Named("b");
 
             // Noise precision prior: Gamma(1, 1)
             var noisePrecisionPrior = Variable.New<Gamma>().Named("noisePrecisionPrior").Attrib(new DoNotInfer());

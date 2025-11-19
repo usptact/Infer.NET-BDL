@@ -21,8 +21,9 @@ The model follows a hierarchical Bayesian structure with three levels:
 
 ### Level 1: Hyperparameters
 - **Coefficient precision hyperparameters**: `a` and `b` (shape and rate for Gamma prior)
-  - Sparse mode: `a = 0.5`, `b = 1e-6` (encourages sparsity via automatic relevance determination)
+  - Sparse mode: `a = 1.0`, `b = 1.0` (provides mild regularization without crushing coefficients)
   - Non-sparse mode: `a = 1.0`, `b = 1.0` (standard prior)
+  - Note: Previous setting `a = 0.5`, `b = 1e-6` was too strong and crushed coefficients to near-zero
 - **Dictionary precision prior**: `Gamma(1, 1)`
 - **Noise precision prior**: `Gamma(1, 1)`
 
@@ -56,17 +57,17 @@ The sparse prior on coefficients (when `a=0.5, b=1e-6`) implements Automatic Rel
 ## Parameters
 
 ### Model Parameters
-- **`numSignals`**: Number of observed signals (default: 50)
+- **`numSignals`**: Number of observed signals (default: 200)
 - **`numBases`**: Number of dictionary atoms/basis functions (default: 8)
 - **`signalWidth`**: Dimension of each signal (default: 64)
 - **`sparse`**: Whether to use sparse priors for coefficients (default: true)
 
 ### Inference Parameters
-- **`maxIterations`**: Maximum number of Variational Message Passing iterations (default: 50)
+- **`maxIterations`**: Maximum number of Variational Message Passing iterations (default: 100)
 - **`tolerance`**: Convergence tolerance (default: 1e-3)
 
 ### Hyperparameters
-- **Sparse mode**: `a = 0.5`, `b = 1e-6` (encourages sparsity)
+- **Sparse mode**: `a = 1.0`, `b = 1.0` (provides mild regularization)
 - **Non-sparse mode**: `a = 1.0`, `b = 1.0` (standard prior)
 - **Dictionary precision**: `Gamma(1, 1)`
 - **Noise precision**: `Gamma(1, 1)`
