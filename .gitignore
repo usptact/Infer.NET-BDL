@@ -61,3 +61,7 @@ artifacts/
 
 # Infer.NET generated source
 GeneratedSource/
+
+# Program output files
+learned_*.csv
+true_*.csv
