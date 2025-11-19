@@ -379,6 +379,65 @@ namespace BayesianDictionaryLearning
             Console.WriteLine();
 
             // ====================================================================
+            // RECONSTRUCTION AND ERROR COMPUTATION
+            // ====================================================================
+            Console.WriteLine("Computing reconstruction...");
+
+            // Reconstruct signals: reconstructed = learned_coefficients × learned_dictionary
+            // coefficients: [numSignals, numBases], dictionary: [numBases, signalWidth]
+            // Result: [numSignals, signalWidth]
+            var reconstructedSignals = new double[numSignals][];
+            for (int i = 0; i < numSignals; i++)
+            {
+                reconstructedSignals[i] = new double[signalWidth];
+                for (int j = 0; j < signalWidth; j++)
+                {
+                    double reconstructedValue = 0.0;
+                    for (int k = 0; k < numBases; k++)
+                    {
+                        reconstructedValue += coefficientsMeansPosterior[i][k] * dictionaryMeansPosterior[k][j];
+                    }
+                    reconstructedSignals[i][j] = reconstructedValue;
+                }
+            }
+
+            // Compute reconstruction error metrics
+            double sumSquaredError = 0.0;
+            double sumAbsoluteError = 0.0;
+            double sumSquaredOriginal = 0.0;
+            int totalElements = numSignals * signalWidth;
+
+            for (int i = 0; i < numSignals; i++)
+            {
+                for (int j = 0; j < signalWidth; j++)
+                {
+                    double error = signals[i][j] - reconstructedSignals[i][j];
+                    double squaredError = error * error;
+                    double absoluteError = Math.Abs(error);
+
+                    sumSquaredError += squaredError;
+                    sumAbsoluteError += absoluteError;
+                    sumSquaredOriginal += signals[i][j] * signals[i][j];
+                }
+            }
+
+            // Compute error metrics
+            double mse = sumSquaredError / totalElements;
+            double rmse = Math.Sqrt(mse);
+            double mae = sumAbsoluteError / totalElements;
+            double relativeError = Math.Sqrt(sumSquaredError / sumSquaredOriginal);
+            double signalToNoiseRatio = 10.0 * Math.Log10(sumSquaredOriginal / sumSquaredError);
+
+            Console.WriteLine();
+            Console.WriteLine("=== Reconstruction Error Metrics ===");
+            Console.WriteLine($"Mean Squared Error (MSE):        {mse:F6}");
+            Console.WriteLine($"Root Mean Squared Error (RMSE): {rmse:F6}");
+            Console.WriteLine($"Mean Absolute Error (MAE):      {mae:F6}");
+            Console.WriteLine($"Relative Error:                 {relativeError:F6}");
+            Console.WriteLine($"Signal-to-Noise Ratio (dB):    {signalToNoiseRatio:F2}");
+            Console.WriteLine();
+
+            // ====================================================================
             // SAVE RESULTS
             // ====================================================================
             Console.WriteLine("Saving results...");
@@ -393,11 +452,15 @@ namespace BayesianDictionaryLearning
             SaveMatrix(trueDictionary, "true_dictionary.csv");
             SaveMatrix(trueCoefficients, "true_coefficients.csv");
 
+            // Save reconstructed signals
+            SaveMatrix(reconstructedSignals, "reconstructed_signals.csv");
+
             Console.WriteLine();
             Console.WriteLine("=== Inference Complete ===");
             Console.WriteLine($"Results saved to:");
             Console.WriteLine($"  - learned_dictionary.csv");
             Console.WriteLine($"  - learned_coefficients.csv");
+            Console.WriteLine($"  - reconstructed_signals.csv");
             Console.WriteLine($"  - true_dictionary.csv (for comparison)");
             Console.WriteLine($"  - true_coefficients.csv (for comparison)");
         }
