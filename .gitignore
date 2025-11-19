@@ -65,3 +65,4 @@ GeneratedSource/
 # Program output files
 learned_*.csv
 true_*.csv
+reconstructed_signals.csv
