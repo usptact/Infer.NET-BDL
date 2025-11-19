@@ -285,6 +285,47 @@ namespace BayesianDictionaryLearning
             noisePrecisionPrior.ObservedValue = Gamma.FromShapeAndRate(1, 1);
             observedSignals.ObservedValue = To2D(signals);
 
+            // ====================================================================
+            // INITIALIZE VARIABLES WITH RANDOM VALUES
+            // ====================================================================
+            // Initialize dictionary means and coefficients with small random values
+            // to break symmetry and allow VMP to learn non-zero values
+            Console.WriteLine("Initializing variables with random values...");
+            var random = new Random(42); // Use fixed seed for reproducibility
+
+            // Initialize dictionary means with small random values
+            var dictionaryMeansInit = new Gaussian[numBases][];
+            for (int k = 0; k < numBases; k++)
+            {
+                dictionaryMeansInit[k] = new Gaussian[signalWidth];
+                for (int j = 0; j < signalWidth; j++)
+                {
+                    // Small random initialization: mean ~ N(0, 0.1), precision = 10
+                    double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
+                    dictionaryMeansInit[k][j] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
+                }
+            }
+
+            // Initialize coefficients with small random values
+            var coefficientsInit = new Gaussian[numSignals, numBases];
+            for (int i = 0; i < numSignals; i++)
+            {
+                for (int k = 0; k < numBases; k++)
+                {
+                    // Small random initialization: mean ~ N(0, 0.1), precision = 10
+                    double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
+                    coefficientsInit[i, k] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
+                }
+            }
+
+            // Set initial distributions for the variables
+            dictionaryMeans.InitialiseTo(Distribution<double>.Array(dictionaryMeansInit));
+            coefficients.InitialiseTo(Distribution<double>.Array(coefficientsInit));
+
+            Console.WriteLine($"Initialized dictionary means with random values in range [-0.1, 0.1]");
+            Console.WriteLine($"Initialized coefficients with random values in range [-0.1, 0.1]");
+            Console.WriteLine();
+
             // Compile the inference algorithm
             // Note: GetCompiledInferenceAlgorithm requires an array of IVariable
             // We query dictionaryMeans (which determines dictionary) and coefficients

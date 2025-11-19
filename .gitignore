@@ -58,3 +58,6 @@ bld/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+
+# Infer.NET generated source
+GeneratedSource/
