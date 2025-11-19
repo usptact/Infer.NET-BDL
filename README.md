@@ -48,7 +48,7 @@ Y ≈ D × C + ε
 
 Where:
 - **Y**: Observed signals matrix (`numSignals × signalWidth`)
-- **D**: Dictionary matrix (`numBases × signalWidth`) - learned
+- **D**: Dictionary matrix (`numBases × signalWidth`) - learned (dense)
 - **C**: Coefficient matrix (`numSignals × numBases`) - learned (sparse)
 - **ε**: Gaussian noise with precision `β`
 
@@ -74,47 +74,9 @@ The sparse prior on coefficients (when `a=0.5, b=3e-6`) implements Automatic Rel
 
 ## Inference
 
-The implementation uses **Variational Message Passing (VMP)** from Infer.NET, which:
-
-1. **Compiles the model**: Converts the probabilistic model into an efficient inference algorithm
-2. **Initializes variables**: Sets up observed values and initializes latent variables
-3. **Iterative updates**: Performs VMP iterations to approximate the posterior distributions
-4. **Extracts posteriors**: Returns posterior distributions over dictionary, coefficients, and noise precision
-
-### Inference Process
-
-1. **Model Definition**: Define the hierarchical Bayesian model using Infer.NET's probabilistic programming constructs
-2. **Compilation**: Compile the model into an optimized inference algorithm
-3. **Observation**: Set observed signal values `Y`
-4. **Iteration**: Run VMP updates until convergence or maximum iterations
-5. **Extraction**: Extract posterior means (and variances) for dictionary and coefficients
+The implementation uses **Variational Message Passing (VMP)** from Infer.NET.
 
 The VMP algorithm approximates the true posterior with a factorized distribution, making inference tractable for large-scale problems.
-
-## Use Cases
-
-Bayesian Dictionary Learning has applications in:
-
-### Signal Processing
-- **Image denoising**: Learn dictionaries of image patches for noise removal
-- **Audio processing**: Decompose audio signals into sparse frequency components
-- **Compressed sensing**: Recover sparse signals from incomplete measurements
-
-### Machine Learning
-- **Feature learning**: Learn interpretable features from raw data
-- **Dimensionality reduction**: Represent high-dimensional data with sparse low-dimensional codes
-- **Transfer learning**: Learn dictionaries that generalize across domains
-
-### Data Analysis
-- **Time series analysis**: Decompose time series into interpretable components
-- **Neuroscience**: Analyze neural signals and identify patterns
-- **Computer vision**: Learn visual dictionaries for object recognition
-
-### Advantages Over Traditional Methods
-- **Uncertainty quantification**: Know how confident the model is about each dictionary element
-- **Automatic sparsity**: No need to tune sparsity regularization parameters
-- **Noise robustness**: Explicit noise modeling handles noisy observations
-- **Bayesian model selection**: Can compare models with different numbers of bases
 
 ## Usage
 
@@ -198,16 +160,14 @@ dotnet run -- --bases 8 --init-dictionary my_dictionary.csv
 ```
 
 **Initialization matrices** follow the same format:
-- **Dictionary initialization**: `numBases` rows × `signalWidth` columns
 - **Coefficients initialization**: `numSignals` rows × `numBases` columns
+- **Dictionary initialization**: `numBases` rows × `signalWidth` columns
 
 Requirements:
 - Comma-separated values
 - All rows must have the same length
 - No headers
 - Dimensions must match expected model parameters
-
-The program will validate matrix dimensions and provide clear error messages if dimensions don't match.
 
 ### Custom Initialization Use Cases
 
@@ -273,24 +233,10 @@ Infer.NET-BDL/
 ├── ArrayHelpers.cs              # Array utility functions
 ├── FileManager.cs               # File I/O operations
 ├── InferNetBDL.csproj           # Project file with dependencies
+├── LICENSE                      # Apache 2.0 license
 └── README.md                    # This file
 ```
 
-### Module Descriptions
+## License
 
-- **Program.cs**: Orchestrates the pipeline, parses CLI args, and coordinates all components
-- **CommandLineOptions.cs**: Defines all command-line options using CommandLineParser
-- **ModelDefinition.cs**: Defines the hierarchical Bayesian model structure
-- **ModelInference.cs**: Manages VMP inference, initialization, and result extraction
-- **SyntheticDataGenerator.cs**: Generates test data with known ground truth
-- **DataLoader.cs**: Loads real signal data from CSV files
-- **ErrorMetrics.cs**: Computes reconstruction quality metrics (MSE, RMSE, MAE, etc.)
-- **ArrayHelpers.cs**: Utility functions for array conversions
-- **FileManager.cs**: Handles saving matrices to CSV files
-
-## References
-
-- Infer.NET: Microsoft's probabilistic programming framework
-- Dictionary Learning: Sparse representation learning
-- Variational Message Passing: Approximate Bayesian inference algorithm
-- Automatic Relevance Determination: Bayesian sparsity-inducing priors
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
