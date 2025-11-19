@@ -97,8 +97,59 @@ namespace BayesianDictionaryLearning
 
             var inference = new ModelInference(model);
             
-            Console.WriteLine("Initializing variables with random values...");
-            inference.InitializeVariables(numSignals, options.NumBases, signalWidth, seed: options.Seed);
+            // ====================================================================
+            // LOAD CUSTOM INITIALIZATION (if specified)
+            // ====================================================================
+            double[][]? customDictionary = null;
+            double[][]? customCoefficients = null;
+
+            if (!string.IsNullOrEmpty(options.InitDictionaryFile))
+            {
+                Console.WriteLine($"Loading dictionary initialization from: {options.InitDictionaryFile}");
+                try
+                {
+                    customDictionary = DataLoader.LoadInitializationMatrix(
+                        options.InitDictionaryFile,
+                        expectedRows: options.NumBases,
+                        expectedCols: signalWidth,
+                        matrixName: "Dictionary");
+                    Console.WriteLine($"  Loaded dictionary initialization: {options.NumBases} × {signalWidth}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading dictionary initialization: {ex.Message}");
+                    Environment.Exit(1);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(options.InitCoefficientsFile))
+            {
+                Console.WriteLine($"Loading coefficients initialization from: {options.InitCoefficientsFile}");
+                try
+                {
+                    customCoefficients = DataLoader.LoadInitializationMatrix(
+                        options.InitCoefficientsFile,
+                        expectedRows: numSignals,
+                        expectedCols: options.NumBases,
+                        matrixName: "Coefficients");
+                    Console.WriteLine($"  Loaded coefficients initialization: {numSignals} × {options.NumBases}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading coefficients initialization: {ex.Message}");
+                    Environment.Exit(1);
+                }
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("Initializing variables...");
+            inference.InitializeVariables(
+                numSignals, 
+                options.NumBases, 
+                signalWidth, 
+                seed: options.Seed,
+                customDictionary: customDictionary,
+                customCoefficients: customCoefficients);
             Console.WriteLine();
 
             inference.Compile();

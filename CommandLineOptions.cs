@@ -48,6 +48,12 @@ namespace BayesianDictionaryLearning
 
         [Option('v', "verbose", Required = false, Default = false, HelpText = "Enable verbose output.")]
         public bool Verbose { get; set; }
+
+        [Option("init-dictionary", Required = false, HelpText = "Path to CSV file with initial dictionary values (numBases × signalWidth). If not specified, random initialization is used.")]
+        public string? InitDictionaryFile { get; set; }
+
+        [Option("init-coefficients", Required = false, HelpText = "Path to CSV file with initial coefficient values (numSignals × numBases). If not specified, random initialization is used.")]
+        public string? InitCoefficientsFile { get; set; }
     }
 }
 

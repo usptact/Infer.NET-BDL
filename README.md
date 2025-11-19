@@ -143,6 +143,8 @@ dotnet run -- --bases 8
 --noise <n>              Noise std dev for synthetic data (default: 0.1)
 -o, --output-prefix <s>  Prefix for output files (default: "")
 -v, --verbose            Enable verbose output
+--init-dictionary <file> Path to CSV file with initial dictionary values (numBases × signalWidth)
+--init-coefficients <file> Path to CSV file with initial coefficient values (numSignals × numBases)
 --help                   Display help
 ```
 
@@ -174,18 +176,72 @@ dotnet run -- --bases 12 --iterations 100 --output-prefix "exp2_"
 dotnet run -- --bases 8 --sparse false
 ```
 
+**6. Custom initialization (warm start):**
+```bash
+# Use previous results as initialization
+dotnet run -- --bases 8 --init-dictionary prev_learned_dictionary.csv --init-coefficients prev_learned_coefficients.csv
+```
+
+**7. Partial custom initialization:**
+```bash
+# Initialize only dictionary, coefficients will be random
+dotnet run -- --bases 8 --init-dictionary my_dictionary.csv
+```
+
 ### CSV Data Format
 
-Input CSV files should contain one signal per row, with comma-separated values:
+**Input signal data** should contain one signal per row:
 ```csv
 0.123,0.456,0.789,...
 0.234,0.567,0.890,...
 ...
 ```
 
-- Each row is one signal
+**Initialization matrices** follow the same format:
+- **Dictionary initialization**: `numBases` rows × `signalWidth` columns
+- **Coefficients initialization**: `numSignals` rows × `numBases` columns
+
+Requirements:
+- Comma-separated values
 - All rows must have the same length
 - No headers
+- Dimensions must match expected model parameters
+
+The program will validate matrix dimensions and provide clear error messages if dimensions don't match.
+
+### Custom Initialization Use Cases
+
+Custom initialization is useful for:
+
+1. **Warm Start**: Resume inference from previous results for faster convergence
+```bash
+# Run initial inference
+dotnet run -- --bases 8 --iterations 50 --output-prefix "init_"
+# Resume with more iterations
+dotnet run -- --bases 8 --iterations 200 --init-dictionary init_learned_dictionary.csv --init-coefficients init_learned_coefficients.csv
+```
+
+2. **Transfer Learning**: Use dictionary learned from one dataset on another
+```bash
+# Learn dictionary from dataset A
+dotnet run -- --data datasetA.csv --bases 10 --output-prefix "dictA_"
+# Apply to dataset B with pretrained dictionary
+dotnet run -- --data datasetB.csv --bases 10 --init-dictionary dictA_learned_dictionary.csv
+```
+
+3. **Informed Initialization**: Use domain knowledge to initialize with known patterns
+```bash
+# Initialize with Fourier basis or other domain-specific atoms
+dotnet run -- --bases 8 --init-dictionary fourier_basis.csv
+```
+
+4. **Comparing Initialization Strategies**: Test different starting points
+```bash
+# Random initialization
+dotnet run -- --bases 8 --seed 42 --output-prefix "random_"
+# PCA-based initialization
+dotnet run -- --bases 8 --init-dictionary pca_basis.csv --output-prefix "pca_"
+```
 
 ### Output Files
 

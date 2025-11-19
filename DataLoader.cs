@@ -75,6 +75,37 @@ namespace BayesianDictionaryLearning
 
             return (signals.Length, signals[0].Length);
         }
+
+        /// <summary>
+        /// Loads initialization matrix from CSV and validates its shape
+        /// </summary>
+        /// <param name="filePath">Path to the CSV file</param>
+        /// <param name="expectedRows">Expected number of rows</param>
+        /// <param name="expectedCols">Expected number of columns</param>
+        /// <param name="matrixName">Name of the matrix (for error messages)</param>
+        /// <returns>Loaded matrix</returns>
+        public static double[][] LoadInitializationMatrix(
+            string filePath, 
+            int expectedRows, 
+            int expectedCols, 
+            string matrixName)
+        {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Initialization file not found: {filePath}");
+
+            var matrix = LoadSignalsFromCsv(filePath);
+            var (actualRows, actualCols) = GetDataInfo(matrix);
+
+            if (actualRows != expectedRows || actualCols != expectedCols)
+            {
+                throw new InvalidDataException(
+                    $"{matrixName} initialization matrix has incorrect dimensions. " +
+                    $"Expected: {expectedRows} × {expectedCols}, " +
+                    $"Got: {actualRows} × {actualCols}");
+            }
+
+            return matrix;
+        }
     }
 }
 

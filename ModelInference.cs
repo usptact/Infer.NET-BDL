@@ -53,43 +53,85 @@ namespace BayesianDictionaryLearning
         }
 
         /// <summary>
-        /// Initializes model variables with random values to break symmetry
+        /// Initializes model variables with random values or custom initialization
         /// </summary>
-        public void InitializeVariables(int numSignals, int numBases, int signalWidth, int seed = 42)
+        /// <param name="numSignals">Number of signals</param>
+        /// <param name="numBases">Number of dictionary bases</param>
+        /// <param name="signalWidth">Width of each signal</param>
+        /// <param name="seed">Random seed for random initialization</param>
+        /// <param name="customDictionary">Optional custom dictionary initialization (numBases × signalWidth)</param>
+        /// <param name="customCoefficients">Optional custom coefficients initialization (numSignals × numBases)</param>
+        public void InitializeVariables(
+            int numSignals, 
+            int numBases, 
+            int signalWidth, 
+            int seed = 42,
+            double[][]? customDictionary = null,
+            double[][]? customCoefficients = null)
         {
             var random = new Random(seed);
 
-            // Initialize dictionary means with small random values
+            // Initialize dictionary means
             var dictionaryMeansInit = new Gaussian[numBases][];
-            for (int k = 0; k < numBases; k++)
+            if (customDictionary != null)
             {
-                dictionaryMeansInit[k] = new Gaussian[signalWidth];
-                for (int j = 0; j < signalWidth; j++)
-                {
-                    // Small random initialization: mean ~ N(0, 0.1), precision = 10
-                    double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
-                    dictionaryMeansInit[k][j] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
-                }
-            }
-
-            // Initialize coefficients with small random values
-            var coefficientsInit = new Gaussian[numSignals, numBases];
-            for (int i = 0; i < numSignals; i++)
-            {
+                // Use custom initialization
                 for (int k = 0; k < numBases; k++)
                 {
-                    // Small random initialization: mean ~ N(0, 0.1), precision = 10
-                    double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
-                    coefficientsInit[i, k] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
+                    dictionaryMeansInit[k] = new Gaussian[signalWidth];
+                    for (int j = 0; j < signalWidth; j++)
+                    {
+                        dictionaryMeansInit[k][j] = Gaussian.FromMeanAndPrecision(customDictionary[k][j], 10.0);
+                    }
                 }
+                Console.WriteLine($"Initialized dictionary means from custom file");
+            }
+            else
+            {
+                // Random initialization
+                for (int k = 0; k < numBases; k++)
+                {
+                    dictionaryMeansInit[k] = new Gaussian[signalWidth];
+                    for (int j = 0; j < signalWidth; j++)
+                    {
+                        double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
+                        dictionaryMeansInit[k][j] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
+                    }
+                }
+                Console.WriteLine($"Initialized dictionary means with random values in range [-0.1, 0.1]");
+            }
+
+            // Initialize coefficients
+            var coefficientsInit = new Gaussian[numSignals, numBases];
+            if (customCoefficients != null)
+            {
+                // Use custom initialization
+                for (int i = 0; i < numSignals; i++)
+                {
+                    for (int k = 0; k < numBases; k++)
+                    {
+                        coefficientsInit[i, k] = Gaussian.FromMeanAndPrecision(customCoefficients[i][k], 10.0);
+                    }
+                }
+                Console.WriteLine($"Initialized coefficients from custom file");
+            }
+            else
+            {
+                // Random initialization
+                for (int i = 0; i < numSignals; i++)
+                {
+                    for (int k = 0; k < numBases; k++)
+                    {
+                        double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
+                        coefficientsInit[i, k] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
+                    }
+                }
+                Console.WriteLine($"Initialized coefficients with random values in range [-0.1, 0.1]");
             }
 
             // Set initial distributions for the variables
             _model.DictionaryMeans.InitialiseTo(Distribution<double>.Array(dictionaryMeansInit));
             _model.Coefficients.InitialiseTo(Distribution<double>.Array(coefficientsInit));
-
-            Console.WriteLine($"Initialized dictionary means with random values in range [-0.1, 0.1]");
-            Console.WriteLine($"Initialized coefficients with random values in range [-0.1, 0.1]");
         }
 
         /// <summary>
