@@ -69,7 +69,9 @@ namespace BayesianDictionaryLearning
         /// Creates and defines the Bayesian Dictionary Learning model
         /// </summary>
         /// <param name="sparse">Whether to use sparse priors for coefficients</param>
-        public ModelDefinition(bool sparse = true)
+        /// <param name="priorShape">Shape parameter (a) for coefficient precision prior Gamma(a, b)</param>
+        /// <param name="priorRate">Rate parameter (b) for coefficient precision prior Gamma(a, b)</param>
+        public ModelDefinition(bool sparse = true, double? priorShape = null, double? priorRate = null)
         {
             // Ranges for indexing
             NumberOfSignals = Variable.New<int>().Named("numberOfSignals");
@@ -81,10 +83,13 @@ namespace BayesianDictionaryLearning
             SampleRange = new Range(SignalWidth).Named("sample");
 
             // Hyperparameters for coefficient precision priors
-            // Sparse: Gamma(0.5, 3e-6) encourages sparsity (~70%) without crushing coefficients
-            // Non-sparse: Gamma(1.0, 1.0) standard prior
-            A = Variable.Observed(sparse ? 0.5 : 1.0).Named("a");
-            B = Variable.Observed(sparse ? 3e-6 : 1.0).Named("b");
+            // Default sparse: Gamma(0.5, 3e-6) encourages sparsity (~70%)
+            // Default non-sparse: Gamma(1.0, 1.0) standard prior
+            double a = priorShape ?? (sparse ? 0.5 : 1.0);
+            double b = priorRate ?? (sparse ? 3e-6 : 1.0);
+            
+            A = Variable.Observed(a).Named("a");
+            B = Variable.Observed(b).Named("b");
 
             // Noise precision prior: Gamma(1, 1)
             NoisePrecisionPrior = Variable.New<Gamma>().Named("noisePrecisionPrior").Attrib(new DoNotInfer());

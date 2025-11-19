@@ -6,6 +6,7 @@
 //
 
 using System;
+using CommandLine;
 
 namespace BayesianDictionaryLearning
 {
@@ -17,52 +18,94 @@ namespace BayesianDictionaryLearning
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("=== Bayesian Dictionary Learning Example ===\n");
+            // Parse command-line arguments
+            Parser.Default.ParseArguments<CommandLineOptions>(args)
+                .WithParsed(options => RunDictionaryLearning(options))
+                .WithNotParsed(errors => Environment.Exit(1));
+        }
+
+        private static void RunDictionaryLearning(CommandLineOptions options)
+        {
+            Console.WriteLine("=== Bayesian Dictionary Learning ===\n");
 
             // ====================================================================
-            // PARAMETERS
+            // LOAD OR GENERATE DATA
             // ====================================================================
-            int numSignals = 200;      // Number of observed signals
-            int numBases = 8;          // Number of dictionary atoms (bases)
-            int signalWidth = 64;      // Dimension of each signal
-            bool sparse = true;        // Use sparse priors for coefficients
-            int maxIterations = 100;   // Maximum VMP iterations
+            double[][] signals;
+            double[][]? trueDictionary = null;
+            double[][]? trueCoefficients = null;
+            int numSignals;
+            int signalWidth;
 
-            Console.WriteLine($"Parameters:");
-            Console.WriteLine($"  Signals: {numSignals}");
-            Console.WriteLine($"  Bases: {numBases}");
-            Console.WriteLine($"  Signal width: {signalWidth}");
-            Console.WriteLine($"  Sparse priors: {sparse}");
+            if (!string.IsNullOrEmpty(options.DataFile))
+            {
+                // Load data from CSV file
+                Console.WriteLine($"Loading data from: {options.DataFile}");
+                signals = DataLoader.LoadSignalsFromCsv(options.DataFile);
+                (numSignals, signalWidth) = DataLoader.GetDataInfo(signals);
+                Console.WriteLine($"Loaded {numSignals} signals of width {signalWidth}");
+                
+                // Override signal width if specified
+                if (options.SignalWidth.HasValue && options.SignalWidth.Value != signalWidth)
+                {
+                    Console.WriteLine($"Warning: Specified signal width ({options.SignalWidth}) does not match data ({signalWidth}). Using data width.");
+                }
+            }
+            else
+            {
+                // Generate synthetic data
+                Console.WriteLine("Generating synthetic data...");
+                numSignals = options.NumSignals;
+                signalWidth = options.SignalWidth ?? 64; // Default to 64 if not specified
+                
+                var dataGenerator = new SyntheticDataGenerator(seed: options.Seed);
+                (signals, trueDictionary, trueCoefficients) = dataGenerator.Generate(
+                    numSignals, options.NumBases, signalWidth, noiseStdDev: options.NoiseStdDev);
+                Console.WriteLine($"Generated {numSignals} signals of width {signalWidth}");
+            }
             Console.WriteLine();
 
             // ====================================================================
-            // GENERATE SYNTHETIC DATA
+            // DISPLAY PARAMETERS
             // ====================================================================
-            Console.WriteLine("Generating synthetic data...");
-            var dataGenerator = new SyntheticDataGenerator(seed: 42);
-            var (signals, trueDictionary, trueCoefficients) = dataGenerator.Generate(
-                numSignals, numBases, signalWidth, noiseStdDev: 0.1);
-            Console.WriteLine($"Generated {numSignals} signals of width {signalWidth}");
+            Console.WriteLine("Parameters:");
+            Console.WriteLine($"  Data source: {(string.IsNullOrEmpty(options.DataFile) ? "Synthetic" : options.DataFile)}");
+            Console.WriteLine($"  Signals: {numSignals}");
+            Console.WriteLine($"  Bases: {options.NumBases}");
+            Console.WriteLine($"  Signal width: {signalWidth}");
+            Console.WriteLine($"  Sparse priors: {options.UseSparse}");
+            Console.WriteLine($"  Prior shape (a): {options.PriorShape}");
+            Console.WriteLine($"  Prior rate (b): {options.PriorRate}");
+            Console.WriteLine($"  Max iterations: {options.MaxIterations}");
+            Console.WriteLine($"  Random seed: {options.Seed}");
+            if (options.Verbose)
+            {
+                Console.WriteLine($"  Verbose mode: enabled");
+                Console.WriteLine($"  Output prefix: {(string.IsNullOrEmpty(options.OutputPrefix) ? "(none)" : options.OutputPrefix)}");
+            }
             Console.WriteLine();
 
             // ====================================================================
             // DEFINE AND RUN MODEL
             // ====================================================================
             Console.WriteLine("Defining Infer.NET model...");
-            var model = new ModelDefinition(sparse);
-            model.SetObservedValues(numSignals, numBases, signalWidth, signals);
+            var model = new ModelDefinition(
+                sparse: options.UseSparse, 
+                priorShape: options.PriorShape, 
+                priorRate: options.PriorRate);
+            model.SetObservedValues(numSignals, options.NumBases, signalWidth, signals);
 
             var inference = new ModelInference(model);
             
             Console.WriteLine("Initializing variables with random values...");
-            inference.InitializeVariables(numSignals, numBases, signalWidth, seed: 42);
+            inference.InitializeVariables(numSignals, options.NumBases, signalWidth, seed: options.Seed);
             Console.WriteLine();
 
             inference.Compile();
             Console.WriteLine();
 
             Console.WriteLine("Running inference...");
-            inference.RunInference(maxIterations);
+            inference.RunInference(options.MaxIterations);
             Console.WriteLine();
 
             var results = inference.GetResults();
@@ -91,20 +134,29 @@ namespace BayesianDictionaryLearning
             // SAVE RESULTS
             // ====================================================================
             Console.WriteLine("Saving results...");
-            FileManager.SaveMatrix(results.DictionaryMeans, "learned_dictionary.csv");
-            FileManager.SaveMatrix(results.CoefficientsMeans, "learned_coefficients.csv");
-            FileManager.SaveMatrix(trueDictionary, "true_dictionary.csv");
-            FileManager.SaveMatrix(trueCoefficients, "true_coefficients.csv");
-            FileManager.SaveMatrix(reconstructedSignals, "reconstructed_signals.csv");
+            string prefix = options.OutputPrefix;
+            FileManager.SaveMatrix(results.DictionaryMeans, $"{prefix}learned_dictionary.csv");
+            FileManager.SaveMatrix(results.CoefficientsMeans, $"{prefix}learned_coefficients.csv");
+            FileManager.SaveMatrix(reconstructedSignals, $"{prefix}reconstructed_signals.csv");
+            
+            // Save ground truth if using synthetic data
+            if (trueDictionary != null && trueCoefficients != null)
+            {
+                FileManager.SaveMatrix(trueDictionary, $"{prefix}true_dictionary.csv");
+                FileManager.SaveMatrix(trueCoefficients, $"{prefix}true_coefficients.csv");
+            }
 
             Console.WriteLine();
             Console.WriteLine("=== Inference Complete ===");
             Console.WriteLine($"Results saved to:");
-            Console.WriteLine($"  - learned_dictionary.csv");
-            Console.WriteLine($"  - learned_coefficients.csv");
-            Console.WriteLine($"  - reconstructed_signals.csv");
-            Console.WriteLine($"  - true_dictionary.csv (for comparison)");
-            Console.WriteLine($"  - true_coefficients.csv (for comparison)");
+            Console.WriteLine($"  - {prefix}learned_dictionary.csv");
+            Console.WriteLine($"  - {prefix}learned_coefficients.csv");
+            Console.WriteLine($"  - {prefix}reconstructed_signals.csv");
+            if (trueDictionary != null && trueCoefficients != null)
+            {
+                Console.WriteLine($"  - {prefix}true_dictionary.csv (ground truth)");
+                Console.WriteLine($"  - {prefix}true_coefficients.csv (ground truth)");
+            }
         }
     }
 }

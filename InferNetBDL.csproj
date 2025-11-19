@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="Microsoft.ML.Probabilistic" Version="0.4.2504.701" />
     <PackageReference Include="Microsoft.ML.Probabilistic.Compiler" Version="0.4.2504.701" />
   </ItemGroup>

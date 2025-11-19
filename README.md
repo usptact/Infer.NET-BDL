@@ -116,35 +116,121 @@ Bayesian Dictionary Learning has applications in:
 - **Noise robustness**: Explicit noise modeling handles noisy observations
 - **Bayesian model selection**: Can compare models with different numbers of bases
 
-## Running the Example
+## Usage
 
+The program supports both synthetic data generation and loading real data from CSV files via command-line arguments.
+
+### Quick Start
+
+Generate and analyze synthetic data with default parameters:
 ```bash
-dotnet run
+dotnet run -- --bases 8
 ```
 
-The program will:
-1. Generate synthetic data (signals, true dictionary, true coefficients)
-2. Run Bayesian inference to learn the dictionary and coefficients
-3. Save results to CSV files:
-   - `learned_dictionary.csv`: Learned dictionary atoms
-   - `learned_coefficients.csv`: Learned sparse coefficients
-   - `true_dictionary.csv`: True dictionary (for comparison)
-   - `true_coefficients.csv`: True coefficients (for comparison)
+### Command-Line Options
+
+```
+-d, --data <file>        Path to CSV file (one signal per row). If not specified,
+                         synthetic data will be generated.
+-s, --signals <n>        Number of signals for synthetic data (default: 200)
+-b, --bases <n>          Number of dictionary atoms to learn (required)
+-w, --width <n>          Signal dimension (auto-detected from CSV)
+--sparse <bool>          Use sparse priors (default: true)
+-a, --prior-shape <n>    Gamma prior shape parameter (default: 0.5)
+--prior-rate <n>         Gamma prior rate parameter (default: 3e-6)
+-i, --iterations <n>     Max VMP iterations (default: 100)
+--seed <n>               Random seed (default: 42)
+--noise <n>              Noise std dev for synthetic data (default: 0.1)
+-o, --output-prefix <s>  Prefix for output files (default: "")
+-v, --verbose            Enable verbose output
+--help                   Display help
+```
+
+### Example Usage
+
+**1. Synthetic data with default sparse prior:**
+```bash
+dotnet run -- --bases 8 --signals 200 --iterations 100
+```
+
+**2. Load data from CSV file:**
+```bash
+dotnet run -- --data mydata.csv --bases 10 --iterations 50
+```
+
+**3. Custom sparse prior (less aggressive):**
+```bash
+dotnet run -- --bases 8 --prior-shape 1.0 --prior-rate 0.01
+```
+
+**4. Multiple experiments with output prefixes:**
+```bash
+dotnet run -- --bases 8 --iterations 100 --output-prefix "exp1_"
+dotnet run -- --bases 12 --iterations 100 --output-prefix "exp2_"
+```
+
+**5. Non-sparse mode:**
+```bash
+dotnet run -- --bases 8 --sparse false
+```
+
+### CSV Data Format
+
+Input CSV files should contain one signal per row, with comma-separated values:
+```csv
+0.123,0.456,0.789,...
+0.234,0.567,0.890,...
+...
+```
+
+- Each row is one signal
+- All rows must have the same length
+- No headers
+
+### Output Files
+
+The program saves results to CSV files:
+- `[prefix]learned_dictionary.csv`: Learned dictionary atoms (numBases × signalWidth)
+- `[prefix]learned_coefficients.csv`: Learned sparse coefficients (numSignals × numBases)
+- `[prefix]reconstructed_signals.csv`: Reconstructed signals from learned dictionary
+- `[prefix]true_dictionary.csv`: Ground truth (synthetic data only)
+- `[prefix]true_coefficients.csv`: Ground truth (synthetic data only)
 
 ## Requirements
 
 - .NET 8.0 SDK
 - Microsoft.ML.Probabilistic (v0.4.2504.701)
 - Microsoft.ML.Probabilistic.Compiler (v0.4.2504.701)
+- CommandLineParser (v2.9.1)
 
 ## Project Structure
 
 ```
 Infer.NET-BDL/
-├── Program.cs              # Main program with model definition and inference
-├── InferNetBDL.csproj      # Project file with dependencies
-└── README.md               # This file
+├── Program.cs                   # Main entry point with CLI orchestration
+├── CommandLineOptions.cs        # Command-line argument definitions
+├── ModelDefinition.cs           # Bayesian model structure
+├── ModelInference.cs            # VMP inference engine
+├── SyntheticDataGenerator.cs    # Synthetic data generation
+├── DataLoader.cs                # CSV data loading
+├── ErrorMetrics.cs              # Reconstruction error computation
+├── ArrayHelpers.cs              # Array utility functions
+├── FileManager.cs               # File I/O operations
+├── InferNetBDL.csproj           # Project file with dependencies
+└── README.md                    # This file
 ```
+
+### Module Descriptions
+
+- **Program.cs**: Orchestrates the pipeline, parses CLI args, and coordinates all components
+- **CommandLineOptions.cs**: Defines all command-line options using CommandLineParser
+- **ModelDefinition.cs**: Defines the hierarchical Bayesian model structure
+- **ModelInference.cs**: Manages VMP inference, initialization, and result extraction
+- **SyntheticDataGenerator.cs**: Generates test data with known ground truth
+- **DataLoader.cs**: Loads real signal data from CSV files
+- **ErrorMetrics.cs**: Computes reconstruction quality metrics (MSE, RMSE, MAE, etc.)
+- **ArrayHelpers.cs**: Utility functions for array conversions
+- **FileManager.cs**: Handles saving matrices to CSV files
 
 ## References
 
