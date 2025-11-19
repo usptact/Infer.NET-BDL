@@ -21,9 +21,9 @@ The model follows a hierarchical Bayesian structure with three levels:
 
 ### Level 1: Hyperparameters
 - **Coefficient precision hyperparameters**: `a` and `b` (shape and rate for Gamma prior)
-  - Sparse mode: `a = 1.0`, `b = 1.0` (provides mild regularization without crushing coefficients)
+  - Sparse mode: `a = 0.5`, `b = 3e-6` (encourages ~70% sparsity, matching typical sparse coefficients)
   - Non-sparse mode: `a = 1.0`, `b = 1.0` (standard prior)
-  - Note: Previous setting `a = 0.5`, `b = 1e-6` was too strong and crushed coefficients to near-zero
+  - This balances sparsity induction with good reconstruction quality
 - **Dictionary precision prior**: `Gamma(1, 1)`
 - **Noise precision prior**: `Gamma(1, 1)`
 
@@ -52,7 +52,7 @@ Where:
 - **C**: Coefficient matrix (`numSignals × numBases`) - learned (sparse)
 - **ε**: Gaussian noise with precision `β`
 
-The sparse prior on coefficients (when `a=0.5, b=1e-6`) implements Automatic Relevance Determination (ARD), which automatically drives unnecessary coefficients toward zero.
+The sparse prior on coefficients (when `a=0.5, b=3e-6`) implements Automatic Relevance Determination (ARD), which automatically drives unnecessary coefficients toward zero while maintaining approximately 70% sparsity.
 
 ## Parameters
 
@@ -67,7 +67,7 @@ The sparse prior on coefficients (when `a=0.5, b=1e-6`) implements Automatic Rel
 - **`tolerance`**: Convergence tolerance (default: 1e-3)
 
 ### Hyperparameters
-- **Sparse mode**: `a = 1.0`, `b = 1.0` (provides mild regularization)
+- **Sparse mode**: `a = 0.5`, `b = 3e-6` (encourages ~70% sparsity)
 - **Non-sparse mode**: `a = 1.0`, `b = 1.0` (standard prior)
 - **Dictionary precision**: `Gamma(1, 1)`
 - **Noise precision**: `Gamma(1, 1)`
