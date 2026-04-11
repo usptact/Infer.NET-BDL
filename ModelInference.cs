@@ -17,7 +17,7 @@ namespace BayesianDictionaryLearning
     /// </summary>
     public class InferenceResults
     {
-        public double[][] DictionaryMeans { get; set; } = Array.Empty<double[]>();
+        public double[][] Dictionary { get; set; } = Array.Empty<double[]>();
         public double[][] CoefficientsMeans { get; set; } = Array.Empty<double[]>();
         public Gamma NoisePrecisionPosterior { get; set; }
     }
@@ -43,12 +43,12 @@ namespace BayesianDictionaryLearning
                 ShowProgress = true
             };
 
-            // Optimize for dictionaryMeans (which determines dictionary), coefficients, and noise precision
-            _engine.OptimiseForVariables = new IVariable[] 
-            { 
-                _model.DictionaryMeans, 
-                _model.Coefficients, 
-                _model.NoisePrecision 
+            // Optimize for dictionary atoms, coefficients, and noise precision
+            _engine.OptimiseForVariables = new IVariable[]
+            {
+                _model.Dictionary,
+                _model.Coefficients,
+                _model.NoisePrecision
             };
         }
 
@@ -71,34 +71,26 @@ namespace BayesianDictionaryLearning
         {
             var random = new Random(seed);
 
-            // Initialize dictionary means
-            var dictionaryMeansInit = new Gaussian[numBases][];
+            // Initialize dictionary atoms
+            var dictionaryInit = new Gaussian[numBases, signalWidth];
             if (customDictionary != null)
             {
                 // Use custom initialization
                 for (int k = 0; k < numBases; k++)
-                {
-                    dictionaryMeansInit[k] = new Gaussian[signalWidth];
                     for (int j = 0; j < signalWidth; j++)
-                    {
-                        dictionaryMeansInit[k][j] = Gaussian.FromMeanAndPrecision(customDictionary[k][j], 10.0);
-                    }
-                }
-                Console.WriteLine($"Initialized dictionary means from custom file");
+                        dictionaryInit[k, j] = Gaussian.FromMeanAndPrecision(customDictionary[k][j], 10.0);
+                Console.WriteLine($"Initialized dictionary from custom file");
             }
             else
             {
                 // Random initialization
                 for (int k = 0; k < numBases; k++)
-                {
-                    dictionaryMeansInit[k] = new Gaussian[signalWidth];
                     for (int j = 0; j < signalWidth; j++)
                     {
                         double initMean = (random.NextDouble() - 0.5) * 0.2; // Range: [-0.1, 0.1]
-                        dictionaryMeansInit[k][j] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
+                        dictionaryInit[k, j] = Gaussian.FromMeanAndPrecision(initMean, 10.0);
                     }
-                }
-                Console.WriteLine($"Initialized dictionary means with random values in range [-0.1, 0.1]");
+                Console.WriteLine($"Initialized dictionary with random values in range [-0.1, 0.1]");
             }
 
             // Initialize coefficients
@@ -130,7 +122,7 @@ namespace BayesianDictionaryLearning
             }
 
             // Set initial distributions for the variables
-            _model.DictionaryMeans.InitialiseTo(Distribution<double>.Array(dictionaryMeansInit));
+            _model.Dictionary.InitialiseTo(Distribution<double>.Array(dictionaryInit));
             _model.Coefficients.InitialiseTo(Distribution<double>.Array(coefficientsInit));
         }
 
@@ -140,7 +132,7 @@ namespace BayesianDictionaryLearning
         public void Compile()
         {
             _compiledAlgorithm = _engine.GetCompiledInferenceAlgorithm(
-                new IVariable[] { _model.DictionaryMeans, _model.Coefficients, _model.NoisePrecision });
+                new IVariable[] { _model.Dictionary, _model.Coefficients, _model.NoisePrecision });
             Console.WriteLine("Model compiled successfully");
         }
 
@@ -179,21 +171,21 @@ namespace BayesianDictionaryLearning
             Console.WriteLine("Extracting posterior distributions...");
 
             // Get posterior distributions
-            var dictionaryMeansPosteriorArray = _compiledAlgorithm.Marginal<Gaussian[][]>(_model.DictionaryMeans.NameInGeneratedCode);
+            var dictionaryPosterior2D = _compiledAlgorithm.Marginal<Gaussian[,]>(_model.Dictionary.NameInGeneratedCode);
             var coefficientsPosterior = _compiledAlgorithm.Marginal<Gaussian[,]>(_model.Coefficients.NameInGeneratedCode);
             var noisePrecisionPosterior = _compiledAlgorithm.Marginal<Gamma>(_model.NoisePrecision.NameInGeneratedCode);
 
             // Convert to jagged arrays and extract means
-            var dictionaryMeansPosterior = ArrayHelpers.GetMeans(dictionaryMeansPosteriorArray);
+            var dictionaryPosterior = ArrayHelpers.GetMeans(ArrayHelpers.ToJagged(dictionaryPosterior2D)!);
             var coefficientsMeansPosterior = ArrayHelpers.GetMeans(ArrayHelpers.ToJagged(coefficientsPosterior)!);
 
-            Console.WriteLine($"Dictionary means posterior: {dictionaryMeansPosteriorArray.Length} × {dictionaryMeansPosteriorArray[0].Length}");
+            Console.WriteLine($"Dictionary posterior: {dictionaryPosterior2D.GetLength(0)} × {dictionaryPosterior2D.GetLength(1)}");
             Console.WriteLine($"Coefficients posterior: {coefficientsPosterior.GetLength(0)} × {coefficientsPosterior.GetLength(1)}");
             Console.WriteLine($"Noise precision: {noisePrecisionPosterior}");
 
             return new InferenceResults
             {
-                DictionaryMeans = dictionaryMeansPosterior,
+                Dictionary = dictionaryPosterior,
                 CoefficientsMeans = coefficientsMeansPosterior,
                 NoisePrecisionPosterior = noisePrecisionPosterior
             };

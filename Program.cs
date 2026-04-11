@@ -170,8 +170,8 @@ namespace BayesianDictionaryLearning
             // ====================================================================
             Console.WriteLine("Computing reconstruction...");
             var reconstructedSignals = ErrorMetrics.ReconstructSignals(
-                results.CoefficientsMeans, 
-                results.DictionaryMeans);
+                results.CoefficientsMeans,
+                results.Dictionary);
 
             var metrics = ErrorMetrics.Compute(signals, reconstructedSignals);
 
@@ -189,7 +189,7 @@ namespace BayesianDictionaryLearning
             // ====================================================================
             Console.WriteLine("Saving results...");
             string prefix = options.OutputPrefix;
-            FileManager.SaveMatrix(results.DictionaryMeans, $"{prefix}learned_dictionary.csv");
+            FileManager.SaveMatrix(results.Dictionary, $"{prefix}learned_dictionary.csv");
             FileManager.SaveMatrix(results.CoefficientsMeans, $"{prefix}learned_coefficients.csv");
             FileManager.SaveMatrix(reconstructedSignals, $"{prefix}reconstructed_signals.csv");
             
