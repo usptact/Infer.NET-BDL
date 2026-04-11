@@ -82,6 +82,7 @@ namespace BayesianDictionaryLearning
             Console.WriteLine($"  Prior shape (a): {priorShape}{(options.PriorShape.HasValue ? "" : " (default)")}");
             Console.WriteLine($"  Prior rate (b): {priorRate}{(options.PriorRate.HasValue ? "" : " (default)")}");
             Console.WriteLine($"  Max iterations: {options.MaxIterations}");
+            Console.WriteLine($"  Tolerance: {options.Tolerance:E3}");
             Console.WriteLine($"  Random seed: {options.Seed}");
             if (options.Verbose)
             {
@@ -159,7 +160,7 @@ namespace BayesianDictionaryLearning
             Console.WriteLine();
 
             Console.WriteLine("Running inference...");
-            inference.RunInference(options.MaxIterations);
+            inference.RunInference(options.MaxIterations, options.Tolerance);
             Console.WriteLine();
 
             var results = inference.GetResults();

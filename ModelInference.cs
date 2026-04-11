@@ -137,9 +137,10 @@ namespace BayesianDictionaryLearning
         }
 
         /// <summary>
-        /// Runs inference for the specified number of iterations
+        /// Runs inference for up to maxIterations, stopping early when the max absolute
+        /// change in Dictionary and Coefficients posterior means drops below tolerance.
         /// </summary>
-        public void RunInference(int maxIterations = 100)
+        public void RunInference(int maxIterations = 100, double tolerance = 1e-3)
         {
             if (_compiledAlgorithm == null)
                 throw new InvalidOperationException("Model must be compiled before running inference");
@@ -147,17 +148,69 @@ namespace BayesianDictionaryLearning
             Console.WriteLine("Running Variational Message Passing...");
             _compiledAlgorithm.Reset();
 
+            double[]? prevDictFlat = null;
+            double[]? prevCoeffFlat = null;
+
             for (int iteration = 1; iteration <= maxIterations; iteration++)
             {
                 _compiledAlgorithm.Update(1);
 
-                if (iteration % 10 == 0 || iteration == 1)
+                // Extract current posterior means for convergence check
+                var dictPost = _compiledAlgorithm.Marginal<Gaussian[,]>(_model.Dictionary.NameInGeneratedCode);
+                var coeffPost = _compiledAlgorithm.Marginal<Gaussian[,]>(_model.Coefficients.NameInGeneratedCode);
+
+                var currDictFlat = FlattenMeans(dictPost);
+                var currCoeffFlat = FlattenMeans(coeffPost);
+
+                if (prevDictFlat != null)
+                {
+                    double maxChange = MaxAbsChange(currDictFlat, prevDictFlat, currCoeffFlat, prevCoeffFlat!);
+                    if (iteration % 10 == 0 || iteration == 1)
+                        Console.WriteLine($"  Iteration {iteration}, max change: {maxChange:E3}");
+
+                    if (maxChange < tolerance)
+                    {
+                        Console.WriteLine($"  Converged at iteration {iteration} (max change {maxChange:E3} < tolerance {tolerance:E3})");
+                        return;
+                    }
+                }
+                else if (iteration % 10 == 0 || iteration == 1)
                 {
                     Console.WriteLine($"  Iteration {iteration}");
                 }
+
+                prevDictFlat = currDictFlat;
+                prevCoeffFlat = currCoeffFlat;
             }
 
-            Console.WriteLine($"  Completed {maxIterations} iterations");
+            Console.WriteLine($"  Completed {maxIterations} iterations without convergence");
+        }
+
+        private static double[] FlattenMeans(Gaussian[,] posteriors)
+        {
+            int rows = posteriors.GetLength(0);
+            int cols = posteriors.GetLength(1);
+            var flat = new double[rows * cols];
+            for (int i = 0; i < rows; i++)
+                for (int j = 0; j < cols; j++)
+                    flat[i * cols + j] = posteriors[i, j].GetMean();
+            return flat;
+        }
+
+        private static double MaxAbsChange(double[] currDict, double[] prevDict, double[] currCoeff, double[] prevCoeff)
+        {
+            double max = 0.0;
+            for (int i = 0; i < currDict.Length; i++)
+            {
+                double d = Math.Abs(currDict[i] - prevDict[i]);
+                if (d > max) max = d;
+            }
+            for (int i = 0; i < currCoeff.Length; i++)
+            {
+                double d = Math.Abs(currCoeff[i] - prevCoeff[i]);
+                if (d > max) max = d;
+            }
+            return max;
         }
 
         /// <summary>

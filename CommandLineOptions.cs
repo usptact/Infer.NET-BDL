@@ -37,6 +37,9 @@ namespace BayesianDictionaryLearning
         [Option('i', "iterations", Required = false, Default = 100, HelpText = "Maximum number of VMP iterations.")]
         public int MaxIterations { get; set; }
 
+        [Option("tolerance", Required = false, Default = 1e-3, HelpText = "Convergence tolerance on max absolute change in posterior means. VMP stops early when the change falls below this threshold.")]
+        public double Tolerance { get; set; }
+
         [Option("seed", Required = false, Default = 42, HelpText = "Random seed for reproducibility.")]
         public int Seed { get; set; }
 

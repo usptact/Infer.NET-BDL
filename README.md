@@ -64,7 +64,7 @@ The sparse prior on coefficients (when `a=0.5, b=3e-6`) implements Automatic Rel
 
 ### Inference Parameters
 - **`maxIterations`**: Maximum number of Variational Message Passing iterations (default: 100)
-- **`tolerance`**: Convergence tolerance (default: 1e-3)
+- **`tolerance`**: Convergence tolerance (default: 1e-3). VMP stops early when the max absolute change in Dictionary and Coefficients posterior means across consecutive iterations falls below this threshold.
 
 ### Hyperparameters
 - **Sparse mode**: `a = 0.5`, `b = 3e-6` (encourages ~70% sparsity)
@@ -101,6 +101,7 @@ dotnet run -- --bases 8
 -a, --prior-shape <n>    Gamma prior shape parameter (default: 0.5)
 --prior-rate <n>         Gamma prior rate parameter (default: 3e-6)
 -i, --iterations <n>     Max VMP iterations (default: 100)
+--tolerance <n>          Convergence tolerance on max change in posterior means (default: 1e-3)
 --seed <n>               Random seed (default: 42)
 --noise <n>              Noise std dev for synthetic data (default: 0.1)
 -o, --output-prefix <s>  Prefix for output files (default: "")

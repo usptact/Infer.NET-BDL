@@ -4,6 +4,7 @@
 // Helper methods for array conversions and operations
 //
 
+using System;
 using System.Linq;
 using Microsoft.ML.Probabilistic.Distributions;
 
@@ -20,15 +21,15 @@ namespace BayesianDictionaryLearning
         public static T[,] To2D<T>(T[][] jaggedArray)
         {
             if (jaggedArray == null || jaggedArray.Length == 0) return new T[0, 0];
-            int cols = jaggedArray.Max(row => row.Length);
+            int cols = jaggedArray[0].Length;
+            for (int i = 1; i < jaggedArray.Length; i++)
+                if (jaggedArray[i].Length != cols)
+                    throw new ArgumentException(
+                        $"Ragged array: row 0 has {cols} columns but row {i} has {jaggedArray[i].Length}");
             var result = new T[jaggedArray.Length, cols];
             for (int i = 0; i < jaggedArray.Length; i++)
-            {
-                for (int j = 0; j < jaggedArray[i].Length && j < cols; j++)
-                {
+                for (int j = 0; j < cols; j++)
                     result[i, j] = jaggedArray[i][j];
-                }
-            }
             return result;
         }
 
