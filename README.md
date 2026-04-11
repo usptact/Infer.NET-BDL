@@ -24,18 +24,17 @@ The model follows a hierarchical Bayesian structure with three levels:
   - Sparse mode: `a = 0.5`, `b = 3e-6` (encourages ~70% sparsity, matching typical sparse coefficients)
   - Non-sparse mode: `a = 1.0`, `b = 1.0` (standard prior)
   - This balances sparsity induction with good reconstruction quality
-- **Dictionary precision prior**: `Gamma(1, 1)`
+- **Dictionary precision prior**: `Gamma(2, 1)` per atom — shape > 1 ensures finite expected variance (`E[1/τ] = 1`)
 - **Noise precision prior**: `Gamma(1, 1)`
 
 ### Level 2: Precisions (Inverse Variances)
-- **Coefficient precisions**: `τ_c[signal, basis] ~ Gamma(a, b)`
-- **Dictionary precisions**: `τ_d[basis, sample] ~ Gamma(1, 1)`
+- **Coefficient precisions**: `τ_c[signal, basis] ~ Gamma(a, b)` (per element — ARD sparsity)
+- **Dictionary precisions**: `τ_d[basis] ~ Gamma(2, 1)` (per atom — uniform scaling across all elements of each atom)
 - **Noise precision**: `β ~ Gamma(1, 1)`
 
 ### Level 3: Variables
 - **Coefficients**: `c[signal, basis] ~ Gaussian(0, τ_c[signal, basis])`
-- **Dictionary**: `d[basis, sample] ~ Gaussian(μ_d[basis, sample], τ_d[basis, sample])`
-  - Where `μ_d[basis, sample] ~ Gaussian(0, 0.01)`
+- **Dictionary**: `d[basis, sample] ~ Gaussian(0, τ_d[basis])`
 - **Observed signals**: `y[signal, sample] ~ Gaussian((C×D)[signal, sample], β)`
 
 ### Mathematical Formulation

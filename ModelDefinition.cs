@@ -15,26 +15,26 @@ namespace BayesianDictionaryLearning
 {
     /// <summary>
     /// Defines the Bayesian Dictionary Learning model
-    /// 
+    ///
     /// Model Structure:
     /// ================
-    /// 
+    ///
     /// Hierarchical Prior Structure:
     /// ------------------------------
     /// Level 1 (Hyperparameters):
-    ///   - a, b: Shape and rate for coefficient precision priors (sparse: a=0.5, b=1e-6)
-    ///   - Gamma(1,1): Prior for dictionary precisions
+    ///   - a, b: Shape and rate for coefficient precision priors (sparse: a=0.5, b=3e-6)
+    ///   - Gamma(2,1): Prior for per-atom dictionary precisions
     ///   - Gamma(1,1): Prior for noise precision
-    /// 
+    ///
     /// Level 2 (Precisions):
-    ///   - τ_c[signal, basis] ~ Gamma(a, b)          // Coefficient precisions
-    ///   - τ_d[basis, sample] ~ Gamma(1, 1)          // Dictionary precisions  
-    ///   - β ~ Gamma(1, 1)                          // Noise precision
-    /// 
+    ///   - τ_c[signal, basis] ~ Gamma(a, b)          // Coefficient precisions (per element, ARD)
+    ///   - τ_d[basis]         ~ Gamma(2, 1)          // Dictionary precisions (per atom, finite E[1/τ])
+    ///   - β                  ~ Gamma(1, 1)          // Noise precision
+    ///
     /// Level 3 (Variables):
-    ///   - c[signal, basis] ~ Gaussian(0, τ_c)      // Coefficients (sparse)
-    ///   - d[basis, sample] ~ Gaussian(μ_d, τ_d)     // Dictionary elements
-    ///   - y[signal, sample] ~ Gaussian(C×D, β)      // Observed signals
+    ///   - c[signal, basis]   ~ Gaussian(0, τ_c[signal, basis])   // Coefficients (sparse via ARD)
+    ///   - d[basis, sample]   ~ Gaussian(0, τ_d[basis])           // Dictionary elements
+    ///   - y[signal, sample]  ~ Gaussian((C×D)[signal,sample], β) // Observed signals
     ///
     /// The model learns: Y ≈ C × D + noise
     /// </summary>
@@ -55,8 +55,7 @@ namespace BayesianDictionaryLearning
         public Variable<Gamma> NoisePrecisionPrior { get; private set; }
         public Variable<double> NoisePrecision { get; private set; }
         
-        public VariableArray<VariableArray<double>, double[][]> DictionaryMeans { get; private set; }
-        public VariableArray2D<double> DictionaryPrecisions { get; private set; }
+        public VariableArray<double> DictionaryPrecisions { get; private set; }
         public VariableArray2D<double> Dictionary { get; private set; }
         
         public VariableArray2D<double> CoefficientPrecisions { get; private set; }
@@ -93,15 +92,20 @@ namespace BayesianDictionaryLearning
             NoisePrecision = Variable<double>.Random(NoisePrecisionPrior).Named("noisePrecision");
 
             // Dictionary variables
-            DictionaryMeans = Variable.Array(Variable.Array<double>(SampleRange), BasisRange).Named("dictionaryMeans");
-            DictionaryPrecisions = Variable.Array<double>(BasisRange, SampleRange).Named("dictionaryPrecisions");
+            // Per-atom precision: Gamma(2, 1) has mean=2 and finite E[1/τ]=1, avoiding the
+            // pathological infinite-variance issue of Gamma(1, 1). One precision per atom
+            // (not per element) so that each atom is scaled uniformly — per-element precision
+            // would create incoherent "patchwork" atoms where individual dimensions are
+            // independently shrunk.
+            DictionaryPrecisions = Variable.Array<double>(BasisRange).Named("dictionaryPrecisions");
             Dictionary = Variable.Array<double>(BasisRange, SampleRange).Named("dictionary");
 
-            DictionaryMeans[BasisRange][SampleRange] = Variable.GaussianFromMeanAndVariance(0, 0.01).ForEach(BasisRange, SampleRange);
-            DictionaryPrecisions[BasisRange, SampleRange] = Variable.GammaFromShapeAndRate(1, 1).ForEach(BasisRange, SampleRange);
-            Dictionary[BasisRange, SampleRange] = Variable.GaussianFromMeanAndPrecision(
-                DictionaryMeans[BasisRange][SampleRange],
-                DictionaryPrecisions[BasisRange, SampleRange]);
+            DictionaryPrecisions[BasisRange] = Variable.GammaFromShapeAndRate(2, 1).ForEach(BasisRange);
+            using (Variable.ForEach(BasisRange))
+            {
+                Dictionary[BasisRange, SampleRange] = Variable.GaussianFromMeanAndPrecision(
+                    0.0, DictionaryPrecisions[BasisRange]).ForEach(SampleRange);
+            }
 
             // Coefficient variables
             CoefficientPrecisions = Variable.Array<double>(SignalRange, BasisRange).Named("coefficientPrecisions");
