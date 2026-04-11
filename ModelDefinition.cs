@@ -54,6 +54,8 @@ namespace BayesianDictionaryLearning
         
         public Variable<Gamma> NoisePrecisionPrior { get; private set; }
         public Variable<double> NoisePrecision { get; private set; }
+
+        public Variable<Gamma> DictionaryPrecisionPrior { get; private set; }
         
         public VariableArray<double> DictionaryPrecisions { get; private set; }
         public VariableArray2D<double> Dictionary { get; private set; }
@@ -100,7 +102,8 @@ namespace BayesianDictionaryLearning
             DictionaryPrecisions = Variable.Array<double>(BasisRange).Named("dictionaryPrecisions");
             Dictionary = Variable.Array<double>(BasisRange, SampleRange).Named("dictionary");
 
-            DictionaryPrecisions[BasisRange] = Variable.GammaFromShapeAndRate(2, 1).ForEach(BasisRange);
+            DictionaryPrecisionPrior = Variable.New<Gamma>().Named("dictionaryPrecisionPrior").Attrib(new DoNotInfer());
+            DictionaryPrecisions[BasisRange] = Variable<double>.Random(DictionaryPrecisionPrior).ForEach(BasisRange);
             using (Variable.ForEach(BasisRange))
             {
                 Dictionary[BasisRange, SampleRange] = Variable.GaussianFromMeanAndPrecision(
@@ -131,6 +134,9 @@ namespace BayesianDictionaryLearning
             NumberOfBases.ObservedValue = numBases;
             SignalWidth.ObservedValue = signalWidth;
             NoisePrecisionPrior.ObservedValue = Gamma.FromShapeAndRate(1, 1);
+            // Gamma(2, 1/signalWidth): shape > 1 keeps E[1/τ] finite; rate = 1/W so that
+            // E[1/τ] = shape/rate = 2W matches atom element variance ~1/W for unit-norm atoms.
+            DictionaryPrecisionPrior.ObservedValue = Gamma.FromShapeAndRate(2, 1.0 / signalWidth);
             ObservedSignals.ObservedValue = ArrayHelpers.To2D(signals);
         }
     }

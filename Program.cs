@@ -176,12 +176,20 @@ namespace BayesianDictionaryLearning
             Console.WriteLine();
 
             // ====================================================================
+            // CANONICALIZE: resolve scale, sign, and permutation symmetries
+            // ====================================================================
+            Console.WriteLine("Canonicalizing learned dictionary...");
+            var (canonDict, canonCoeff) = DictionaryAligner.NormaliseAtoms(results.Dictionary, results.CoefficientsMeans);
+            (canonDict, canonCoeff)     = DictionaryAligner.CanonicalSign(canonDict, canonCoeff);
+            (canonDict, canonCoeff)     = DictionaryAligner.SortByActivity(canonDict, canonCoeff);
+            Console.WriteLine("  Applied: unit-norm normalisation, canonical sign, sort by activity");
+            Console.WriteLine();
+
+            // ====================================================================
             // RECONSTRUCTION AND ERROR COMPUTATION
             // ====================================================================
             Console.WriteLine("Computing reconstruction...");
-            var reconstructedSignals = ErrorMetrics.ReconstructSignals(
-                results.CoefficientsMeans,
-                results.Dictionary);
+            var reconstructedSignals = ErrorMetrics.ReconstructSignals(canonCoeff, canonDict);
 
             var metrics = ErrorMetrics.Compute(signals, reconstructedSignals);
 
@@ -192,6 +200,13 @@ namespace BayesianDictionaryLearning
             Console.WriteLine($"Mean Absolute Error (MAE):      {metrics.MeanAbsoluteError:F6}");
             Console.WriteLine($"Relative Error:                 {metrics.RelativeError:F6}");
             Console.WriteLine($"Signal-to-Noise Ratio (dB):    {metrics.SignalToNoiseRatio:F2}");
+
+            // Atom recovery (synthetic data only)
+            if (trueDictionary != null)
+            {
+                double atomRecovery = DictionaryAligner.ComputeAtomRecovery(canonDict, trueDictionary);
+                Console.WriteLine($"Atom Recovery (mean |cosine|):  {atomRecovery:F4}  (1 = perfect)");
+            }
             Console.WriteLine();
 
             // ====================================================================
@@ -199,8 +214,8 @@ namespace BayesianDictionaryLearning
             // ====================================================================
             Console.WriteLine("Saving results...");
             string prefix = options.OutputPrefix;
-            FileManager.SaveMatrix(results.Dictionary, $"{prefix}learned_dictionary.csv");
-            FileManager.SaveMatrix(results.CoefficientsMeans, $"{prefix}learned_coefficients.csv");
+            FileManager.SaveMatrix(canonDict, $"{prefix}learned_dictionary.csv");
+            FileManager.SaveMatrix(canonCoeff, $"{prefix}learned_coefficients.csv");
             FileManager.SaveMatrix(reconstructedSignals, $"{prefix}reconstructed_signals.csv");
             
             // Save ground truth if using synthetic data
