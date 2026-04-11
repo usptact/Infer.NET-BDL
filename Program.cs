@@ -59,8 +59,17 @@ namespace BayesianDictionaryLearning
                 signalWidth = options.SignalWidth ?? 64; // Default to 64 if not specified
                 
                 var dataGenerator = new SyntheticDataGenerator(seed: options.Seed);
-                (signals, trueDictionary, trueCoefficients) = dataGenerator.Generate(
-                    numSignals, options.NumBases, signalWidth, noiseStdDev: options.NoiseStdDev);
+                try
+                {
+                    (signals, trueDictionary, trueCoefficients) = dataGenerator.Generate(
+                        numSignals, options.NumBases, signalWidth, noiseStdDev: options.NoiseStdDev);
+                }
+                catch (ArgumentException ex)
+                {
+                    Console.Error.WriteLine($"Error generating synthetic data: {ex.Message}");
+                    Environment.Exit(1);
+                    return;
+                }
                 Console.WriteLine($"Generated {numSignals} signals of width {signalWidth}");
             }
             Console.WriteLine();
