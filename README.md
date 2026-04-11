@@ -36,14 +36,14 @@ The model follows a hierarchical Bayesian structure with three levels:
 - **Coefficients**: `c[signal, basis] ~ Gaussian(0, τ_c[signal, basis])`
 - **Dictionary**: `d[basis, sample] ~ Gaussian(μ_d[basis, sample], τ_d[basis, sample])`
   - Where `μ_d[basis, sample] ~ Gaussian(0, 0.01)`
-- **Observed signals**: `y[signal, sample] ~ Gaussian((D×C)[signal, sample], β)`
+- **Observed signals**: `y[signal, sample] ~ Gaussian((C×D)[signal, sample], β)`
 
 ### Mathematical Formulation
 
 The model learns the decomposition:
 
 ```
-Y ≈ D × C + ε
+Y ≈ C × D + ε
 ```
 
 Where:

@@ -64,7 +64,7 @@ namespace BayesianDictionaryLearning
                 }
             }
 
-            // Generate signals: Y = D × C + noise
+            // Generate signals: Y = C × D + noise
             var signals = new double[numSignals][];
             for (int i = 0; i < numSignals; i++)
             {

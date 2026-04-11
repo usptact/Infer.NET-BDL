@@ -34,9 +34,9 @@ namespace BayesianDictionaryLearning
     /// Level 3 (Variables):
     ///   - c[signal, basis] ~ Gaussian(0, τ_c)      // Coefficients (sparse)
     ///   - d[basis, sample] ~ Gaussian(μ_d, τ_d)     // Dictionary elements
-    ///   - y[signal, sample] ~ Gaussian(D×C, β)      // Observed signals
-    /// 
-    /// The model learns: Y ≈ D × C + noise
+    ///   - y[signal, sample] ~ Gaussian(C×D, β)      // Observed signals
+    ///
+    /// The model learns: Y ≈ C × D + noise
     /// </summary>
     public class ModelDefinition
     {
@@ -97,8 +97,8 @@ namespace BayesianDictionaryLearning
             DictionaryPrecisions = Variable.Array<double>(BasisRange, SampleRange).Named("dictionaryPrecisions");
             Dictionary = Variable.Array<double>(BasisRange, SampleRange).Named("dictionary");
 
-            DictionaryMeans[BasisRange][SampleRange] = Variable.GaussianFromMeanAndVariance(0, 1.0).ForEach(BasisRange, SampleRange);
-            DictionaryPrecisions[BasisRange, SampleRange] = Variable.GammaFromShapeAndRate(1, 0.1).ForEach(BasisRange, SampleRange);
+            DictionaryMeans[BasisRange][SampleRange] = Variable.GaussianFromMeanAndVariance(0, 0.01).ForEach(BasisRange, SampleRange);
+            DictionaryPrecisions[BasisRange, SampleRange] = Variable.GammaFromShapeAndRate(1, 1).ForEach(BasisRange, SampleRange);
             Dictionary[BasisRange, SampleRange] = Variable.GaussianFromMeanAndPrecision(
                 DictionaryMeans[BasisRange][SampleRange],
                 DictionaryPrecisions[BasisRange, SampleRange]);
