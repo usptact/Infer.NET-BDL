@@ -28,11 +28,11 @@ namespace BayesianDictionaryLearning
         [Option("sparse", Required = false, Default = true, HelpText = "Use sparse priors for coefficients (ARD-style sparsity).")]
         public bool UseSparse { get; set; }
 
-        [Option('a', "prior-shape", Required = false, Default = 0.5, HelpText = "Shape parameter (a) for coefficient precision prior Gamma(a, b). Lower values encourage more sparsity.")]
-        public double PriorShape { get; set; }
+        [Option('a', "prior-shape", Required = false, HelpText = "Shape parameter (a) for coefficient precision prior Gamma(a, b). Defaults: 0.5 (sparse), 1.0 (non-sparse). Lower values encourage more sparsity.")]
+        public double? PriorShape { get; set; }
 
-        [Option("prior-rate", Required = false, Default = 3e-6, HelpText = "Rate parameter (b) for coefficient precision prior Gamma(a, b). Higher values encourage sparsity.")]
-        public double PriorRate { get; set; }
+        [Option("prior-rate", Required = false, HelpText = "Rate parameter (b) for coefficient precision prior Gamma(a, b). Defaults: 3e-6 (sparse), 1.0 (non-sparse). Higher values encourage sparsity.")]
+        public double? PriorRate { get; set; }
 
         [Option('i', "iterations", Required = false, Default = 100, HelpText = "Maximum number of VMP iterations.")]
         public int MaxIterations { get; set; }

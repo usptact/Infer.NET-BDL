@@ -65,6 +65,11 @@ namespace BayesianDictionaryLearning
             }
             Console.WriteLine();
 
+            // Resolve prior hyperparameters: use explicit CLI values if provided,
+            // otherwise fall back to mode-appropriate defaults.
+            double priorShape = options.PriorShape ?? (options.UseSparse ? 0.5 : 1.0);
+            double priorRate  = options.PriorRate  ?? (options.UseSparse ? 3e-6 : 1.0);
+
             // ====================================================================
             // DISPLAY PARAMETERS
             // ====================================================================
@@ -74,8 +79,8 @@ namespace BayesianDictionaryLearning
             Console.WriteLine($"  Bases: {options.NumBases}");
             Console.WriteLine($"  Signal width: {signalWidth}");
             Console.WriteLine($"  Sparse priors: {options.UseSparse}");
-            Console.WriteLine($"  Prior shape (a): {options.PriorShape}");
-            Console.WriteLine($"  Prior rate (b): {options.PriorRate}");
+            Console.WriteLine($"  Prior shape (a): {priorShape}{(options.PriorShape.HasValue ? "" : " (default)")}");
+            Console.WriteLine($"  Prior rate (b): {priorRate}{(options.PriorRate.HasValue ? "" : " (default)")}");
             Console.WriteLine($"  Max iterations: {options.MaxIterations}");
             Console.WriteLine($"  Random seed: {options.Seed}");
             if (options.Verbose)
@@ -88,11 +93,9 @@ namespace BayesianDictionaryLearning
             // ====================================================================
             // DEFINE AND RUN MODEL
             // ====================================================================
+
             Console.WriteLine("Defining Infer.NET model...");
-            var model = new ModelDefinition(
-                sparse: options.UseSparse, 
-                priorShape: options.PriorShape, 
-                priorRate: options.PriorRate);
+            var model = new ModelDefinition(priorShape: priorShape, priorRate: priorRate);
             model.SetObservedValues(numSignals, options.NumBases, signalWidth, signals);
 
             var inference = new ModelInference(model);
