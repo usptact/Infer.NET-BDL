@@ -164,13 +164,15 @@ namespace BayesianDictionaryLearning
 
                 if (prevDictFlat != null)
                 {
-                    double maxChange = MaxAbsChange(currDictFlat, prevDictFlat, currCoeffFlat, prevCoeffFlat!);
+                    double maxRelChange = Math.Max(
+                        MaxRelChange(currDictFlat, prevDictFlat),
+                        MaxRelChange(currCoeffFlat, prevCoeffFlat!));
                     if (iteration % 10 == 0 || iteration == 1)
-                        Console.WriteLine($"  Iteration {iteration}, max change: {maxChange:E3}");
+                        Console.WriteLine($"  Iteration {iteration}, max rel change: {maxRelChange:E3}");
 
-                    if (maxChange < tolerance)
+                    if (maxRelChange < tolerance)
                     {
-                        Console.WriteLine($"  Converged at iteration {iteration} (max change {maxChange:E3} < tolerance {tolerance:E3})");
+                        Console.WriteLine($"  Converged at iteration {iteration} (max rel change {maxRelChange:E3} < tolerance {tolerance:E3})");
                         return;
                     }
                 }
@@ -197,17 +199,20 @@ namespace BayesianDictionaryLearning
             return flat;
         }
 
-        private static double MaxAbsChange(double[] currDict, double[] prevDict, double[] currCoeff, double[] prevCoeff)
+        /// <summary>
+        /// Max absolute change normalised by the RMS of the current values,
+        /// making the criterion scale-independent across arrays with different magnitudes.
+        /// </summary>
+        private static double MaxRelChange(double[] curr, double[] prev)
         {
+            double sumSq = 0.0;
+            for (int i = 0; i < curr.Length; i++) sumSq += curr[i] * curr[i];
+            double scale = Math.Sqrt(sumSq / curr.Length) + 1e-10;
+
             double max = 0.0;
-            for (int i = 0; i < currDict.Length; i++)
+            for (int i = 0; i < curr.Length; i++)
             {
-                double d = Math.Abs(currDict[i] - prevDict[i]);
-                if (d > max) max = d;
-            }
-            for (int i = 0; i < currCoeff.Length; i++)
-            {
-                double d = Math.Abs(currCoeff[i] - prevCoeff[i]);
+                double d = Math.Abs(curr[i] - prev[i]) / scale;
                 if (d > max) max = d;
             }
             return max;
@@ -234,7 +239,6 @@ namespace BayesianDictionaryLearning
 
             Console.WriteLine($"Dictionary posterior: {dictionaryPosterior2D.GetLength(0)} × {dictionaryPosterior2D.GetLength(1)}");
             Console.WriteLine($"Coefficients posterior: {coefficientsPosterior.GetLength(0)} × {coefficientsPosterior.GetLength(1)}");
-            Console.WriteLine($"Noise precision: {noisePrecisionPosterior}");
 
             return new InferenceResults
             {

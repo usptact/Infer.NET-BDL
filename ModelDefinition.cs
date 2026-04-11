@@ -28,7 +28,7 @@ namespace BayesianDictionaryLearning
     ///
     /// Level 2 (Precisions):
     ///   - τ_c[signal, basis] ~ Gamma(a, b)          // Coefficient precisions (per element, ARD)
-    ///   - τ_d[basis]         ~ Gamma(2, 1)          // Dictionary precisions (per atom, finite E[1/τ])
+    ///   - τ_d[basis]         ~ Gamma(2, 1/W)        // Dictionary precisions (per atom; E[1/τ]=2W matches unit-norm atom variance)
     ///   - β                  ~ Gamma(1, 1)          // Noise precision
     ///
     /// Level 3 (Variables):
@@ -48,9 +48,6 @@ namespace BayesianDictionaryLearning
         public Range SignalRange { get; private set; }
         public Range BasisRange { get; private set; }
         public Range SampleRange { get; private set; }
-        
-        public Variable<double> A { get; private set; }
-        public Variable<double> B { get; private set; }
         
         public Variable<Gamma> NoisePrecisionPrior { get; private set; }
         public Variable<double> NoisePrecision { get; private set; }
@@ -82,13 +79,6 @@ namespace BayesianDictionaryLearning
             BasisRange = new Range(NumberOfBases).Named("basis");
             SampleRange = new Range(SignalWidth).Named("sample");
 
-            // Hyperparameters for coefficient precision priors
-            double a = priorShape;
-            double b = priorRate;
-            
-            A = Variable.Observed(a).Named("a");
-            B = Variable.Observed(b).Named("b");
-
             // Noise precision prior: Gamma(1, 1)
             NoisePrecisionPrior = Variable.New<Gamma>().Named("noisePrecisionPrior").Attrib(new DoNotInfer());
             NoisePrecision = Variable<double>.Random(NoisePrecisionPrior).Named("noisePrecision");
@@ -114,7 +104,7 @@ namespace BayesianDictionaryLearning
             CoefficientPrecisions = Variable.Array<double>(SignalRange, BasisRange).Named("coefficientPrecisions");
             Coefficients = Variable.Array<double>(SignalRange, BasisRange).Named("coefficients");
 
-            CoefficientPrecisions[SignalRange, BasisRange] = Variable.GammaFromShapeAndRate(A, B).ForEach(SignalRange, BasisRange);
+            CoefficientPrecisions[SignalRange, BasisRange] = Variable.GammaFromShapeAndRate(priorShape, priorRate).ForEach(SignalRange, BasisRange);
             Coefficients[SignalRange, BasisRange] = Variable.GaussianFromMeanAndPrecision(0, CoefficientPrecisions[SignalRange, BasisRange]);
 
             // Observation model

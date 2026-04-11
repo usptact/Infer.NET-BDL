@@ -193,20 +193,36 @@ namespace BayesianDictionaryLearning
 
             var metrics = ErrorMetrics.Compute(signals, reconstructedSignals);
 
+            double noisePrecisionMean = results.NoisePrecisionPosterior.GetMean();
+            double noiseStdDevInferred = 1.0 / Math.Sqrt(noisePrecisionMean);
+
             Console.WriteLine();
             Console.WriteLine("=== Reconstruction Error Metrics ===");
-            Console.WriteLine($"Mean Squared Error (MSE):        {metrics.MeanSquaredError:F6}");
-            Console.WriteLine($"Root Mean Squared Error (RMSE): {metrics.RootMeanSquaredError:F6}");
-            Console.WriteLine($"Mean Absolute Error (MAE):      {metrics.MeanAbsoluteError:F6}");
-            Console.WriteLine($"Relative Error:                 {metrics.RelativeError:F6}");
-            Console.WriteLine($"Signal-to-Noise Ratio (dB):    {metrics.SignalToNoiseRatio:F2}");
+            Console.WriteLine($"  vs. observed signals (noisy):");
+            Console.WriteLine($"    MSE:          {metrics.MeanSquaredError:F6}");
+            Console.WriteLine($"    RMSE:         {metrics.RootMeanSquaredError:F6}");
+            Console.WriteLine($"    MAE:          {metrics.MeanAbsoluteError:F6}");
+            Console.WriteLine($"    Relative err: {metrics.RelativeError:F6}");
+            Console.WriteLine($"    SNR (dB):     {metrics.SignalToNoiseRatio:F2}");
 
-            // Atom recovery (synthetic data only)
-            if (trueDictionary != null)
+            // For synthetic data: also compare against clean signals to separate model
+            // error from irreducible observation noise.
+            if (trueDictionary != null && trueCoefficients != null)
             {
+                var cleanSignals = ErrorMetrics.ReconstructSignals(trueCoefficients, trueDictionary);
+                var cleanMetrics = ErrorMetrics.Compute(cleanSignals, reconstructedSignals);
+                Console.WriteLine($"  vs. clean signals (noise-free ground truth):");
+                Console.WriteLine($"    MSE:          {cleanMetrics.MeanSquaredError:F6}");
+                Console.WriteLine($"    RMSE:         {cleanMetrics.RootMeanSquaredError:F6}");
+                Console.WriteLine($"    MAE:          {cleanMetrics.MeanAbsoluteError:F6}");
+                Console.WriteLine($"    Relative err: {cleanMetrics.RelativeError:F6}");
+                Console.WriteLine($"    SNR (dB):     {cleanMetrics.SignalToNoiseRatio:F2}");
+
                 double atomRecovery = DictionaryAligner.ComputeAtomRecovery(canonDict, trueDictionary);
-                Console.WriteLine($"Atom Recovery (mean |cosine|):  {atomRecovery:F4}  (1 = perfect)");
+                Console.WriteLine($"  Atom Recovery (mean |cosine|): {atomRecovery:F4}  (1 = perfect)");
             }
+
+            Console.WriteLine($"  Inferred noise std dev: {noiseStdDevInferred:F4}  (true: {options.NoiseStdDev:F4})");
             Console.WriteLine();
 
             // ====================================================================
